@@ -15,6 +15,24 @@ namespace MusicApi.Controllers
     [ApiController]
     public class MusicController : ControllerBase
     {
+
+        public void ShowDataTable(DataTable table)
+        {
+            Console.WriteLine($"Tên bảng: {table.TableName}");
+            foreach (DataColumn col in table.Columns)
+            {
+                Console.Write($"{col.ColumnName,15}");
+            }
+            Console.WriteLine();
+            foreach (DataRow row in table.Rows)
+            {
+                for(int i = 0; i < table.Columns.Count; i++)
+                {
+                    Console.Write($"{row[i],15}");
+                }
+                Console.WriteLine();
+            }
+        }
         // GET: api/<MusicController>
         [HttpGet]
         public object Get()
@@ -61,6 +79,86 @@ namespace MusicApi.Controllers
             sqlConnection.Close();
             //return Data.MusicData.Values.ToList();
             //return Data.MusicData.Select(music => music.Value).ToList();
+            return result;
+        }
+
+        [HttpGet("v2")]
+        public object GetV2()
+        {
+            var result = new Result();
+
+            var sqlStringBuilder = new SqlConnectionStringBuilder();
+            sqlStringBuilder["Server"] = "DESKTOP-RL88JED\\ROMCOCA";
+            sqlStringBuilder["Database"] = "music";
+            sqlStringBuilder["Trusted_Connection"] = "True";
+
+            //string connection = "Server=DESKTOP-RL88JED\\ROMCOCA; Database=music; Trusted_Connection=True;";
+            string connection = sqlStringBuilder.ToString();
+            using var sqlConnection = new SqlConnection(connection);
+
+            sqlConnection.Open();
+
+            //var dataset = new DataSet();
+            //var table = new DataTable("MusciTable");
+            //dataset.Tables.Add(table);
+
+            //table.Columns.Add()
+
+            var adapter = new SqlDataAdapter();
+            adapter.TableMappings.Add("Table", "Music");
+
+            //Thiết lập SelectCommand
+            adapter.SelectCommand = new SqlCommand("SELECT * FROM musics", sqlConnection);
+            
+            //Thiết lập InsertCommand
+            adapter.InsertCommand = new SqlCommand("INSERT INTO musics (song, link, singer, author) VALUES (@Song, @Link, @Singer, @Author)", sqlConnection);
+            adapter.InsertCommand.Parameters.Add(new SqlParameter("@Song", SqlDbType.NVarChar, 50 , "song"));
+            adapter.InsertCommand.Parameters.Add(new SqlParameter("@Link", SqlDbType.VarChar, 50, "link"));
+            adapter.InsertCommand.Parameters.Add(new SqlParameter("@Singer", SqlDbType.NVarChar, 50, "singer"));
+            adapter.InsertCommand.Parameters.Add(new SqlParameter("@Author", SqlDbType.NVarChar, 50, "author"));
+
+            //Thiết lập DeleteCommand
+            adapter.DeleteCommand = new SqlCommand("DELETE FROM musics WHERE id = @Id", sqlConnection);
+            var paramDelete = adapter.DeleteCommand.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int));
+            paramDelete.SourceColumn = "id";
+            paramDelete.SourceVersion = DataRowVersion.Original;
+
+            //Thiết lập UpdateCommand
+            adapter.UpdateCommand = new SqlCommand("UPDATE musics SET song = @Song, link = @Link, singer = @Singer, author = @Author WHERE id = @Id", sqlConnection);
+            var paramUpdate = adapter.UpdateCommand.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int));
+            paramUpdate.SourceColumn = "id";
+            paramUpdate.SourceVersion = DataRowVersion.Original;
+            adapter.UpdateCommand.Parameters.Add(new SqlParameter("@Song", SqlDbType.NVarChar, 50, "song"));
+            adapter.UpdateCommand.Parameters.Add(new SqlParameter("@Link", SqlDbType.VarChar, 50, "link"));
+            adapter.UpdateCommand.Parameters.Add(new SqlParameter("@Singer", SqlDbType.NVarChar, 50, "singer"));
+            adapter.UpdateCommand.Parameters.Add(new SqlParameter("@Author", SqlDbType.NVarChar, 50, "author"));
+
+            var dataset = new DataSet();
+            adapter.Fill(dataset);
+
+            DataTable table = dataset.Tables["Music"];
+            ShowDataTable(table);
+
+            var rowInsert = table.Rows.Add();
+            rowInsert["song"] = "Song 1";
+            rowInsert["link"] = "Link 1";
+            rowInsert["singer"] = "Singer 1";
+            rowInsert["author"] = "Nhac Si 1";
+
+            //table.Rows.Add(new object[] {(table.Rows.Count + 1), "Bai hat 4", "https://google.com.vn", "Ca si 4", "Nhac si 4" });
+            //table.Rows.Add(new object[] {(table.Rows.Count + 1), "Bai hat 4", "https://google.com.vn", "Ca si 4", "Nhac si 4" });
+            //table.Rows.Add(new object[] {(table.Rows.Count + 1), "Bai hat 4", "https://google.com.vn", "Ca si 4", "Nhac si 4" });
+
+            //table.Rows[9].Delete();
+
+            //var rowUpdate = table.Rows[0];
+            //rowUpdate[1] = "Chinh sua bai hat 1";
+
+            adapter.Update(dataset);
+            adapter.Fill(dataset);
+            ShowDataTable(table);
+
+            sqlConnection.Close();
             return result;
         }
 
@@ -180,7 +278,7 @@ namespace MusicApi.Controllers
         [HttpPut("{id}")]
         public void Put(int id, [FromBody] Music music)
         {
-
+           
         }
 
         // DELETE api/<MusicController>/5
